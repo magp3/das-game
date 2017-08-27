@@ -1,0 +1,61 @@
+	Exporter version: 4.6.1, Blender version: 2.76 (sub 0)
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used:
+		selected layers only:  false
+		flat shading entire scene:  false
+		inline textures:  false
+		texture directory:  /home/magnus/projects/the_game/blender/
+	Python World class constructor completed
+	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
+	processing begun of skeleton:  Armature, id:  0
+		processing begun of bone:  ik-target.l, index:  0
+		processing begun of bone:  ik-pole.l, index:  1
+		processing begun of bone:  ik-target.r, index:  2
+		processing begun of bone:  ik-pole.r, index:  3
+		processing begun of bone:  Body lower, index:  4
+		processing begun of bone:  Leg.r, index:  5
+		processing begun of bone:  Leg2.r, index:  6
+		processing begun of bone:  Foot.r, index:  7
+		processing begun of bone:  Body upper, index:  8
+		processing begun of bone:  Arm.l, index:  9
+		processing begun of bone:  Arm2.l, index:  10
+		processing begun of bone:  Arm2.l.001, index:  11
+		processing begun of bone:  Neck.001, index:  12
+		processing begun of bone:  Head, index:  13
+		processing begun of bone:  Arm.r, index:  14
+		processing begun of bone:  Arm2.r, index:  15
+		processing begun of bone:  Arm2.r.001, index:  16
+		processing begun of bone:  Leg.l, index:  17
+		processing begun of bone:  Leg2.l, index:  18
+		processing begun of bone:  Foot.l, index:  19
+		processing action Idle:  in[0 - 121], out[0 - 121]
+		processing action Idle.001:  in[0 - 121], out[130 - 251]
+		processing action Punch:  in[1 - 25], out[260 - 285]
+		processing action Slash:  in[0 - 13], out[290 - 303]
+		processing action Slash.001:  in[0 - 13], out[310 - 323]
+		processing action Walk:  in[1 - 16], out[330 - 346]
+	processing begun of mesh:  Cube
+		animation processing begun
+			processing action Idle:  in[0 - 121], out[0 - 121]
+			processing action Idle.001:  in[0 - 121], out[130 - 251]
+			processing action Punch:  in[1 - 25], out[260 - 285]
+			processing action Slash:  in[0 - 13], out[290 - 303]
+			processing action Slash.001:  in[0 - 13], out[310 - 323]
+			processing action Walk:  in[1 - 16], out[330 - 346]
+		processing begun of Standard material:  Material
+		num positions      :  1566
+		num normals        :  1566
+		num uvs            :  3132
+		num uvs2           :  0
+		num colors         :  6264
+		num indices        :  3462
+		Skeleton stats:  
+			Total Influencers:  3012
+			Avg # of influencers per vertex:  1.9234
+			Highest # of influencers observed:  5, num vertices with this:  4
+			exported as 5 influencers
+			num skeletonWeights and skeletonIndices:  12528
+========= Writing of scene file started =========
+========= Writing of scene file completed =========
+========= end of processing =========
+elapsed time:  0 min, 0.6441 secs

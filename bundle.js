@@ -71,13 +71,18 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var BABYLON = __webpack_require__(1);
+window["BABYLON"] = BABYLON;
 var keyState = {};
+var mouseState = {};
 var player;
 var camera;
+var theSkeleton;
 var createScene = function (engine, canvas) {
     // create a basic BJS Scene object
     var scene = new BABYLON.Scene(engine);
     scene.enablePhysics();
+    BABYLON.DebugLayer.InspectorURL = location.href + "babylon.inspector.bundle.js";
+    scene.debugLayer.show();
     //will do collisions in worker thread for better rendering times - seems to not work..
     // scene.workerCollisions = true;
     scene.collisionsEnabled = true;
@@ -89,17 +94,12 @@ var createScene = function (engine, canvas) {
     camera.collisionRadius = new BABYLON.Vector3(0.5, 0.5, 0.5);
     camera.checkCollisions = true;
     // attach the camera to the canvas
-    camera.attachControl(canvas, false);
+    camera.attachControl(canvas, true);
     // create a basic light, aiming 0,1,0 - meaning, to the sky
     var light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), scene);
     // create a built-in "sphere" shape; its constructor takes 4 params: name, subdivisions, radius, scene
-    player = BABYLON.Mesh.CreateSphere('sphere1', 30, 2, scene);
+    // player = BABYLON.Mesh.CreateSphere('sphere1', 30, 2, scene);
     // move the sphere upward 1/2 of its height
-    player.position.y = 10;
-    player.ellipsoid = new BABYLON.Vector3(1, 1, 1);
-    player.applyGravity = true;
-    player.checkCollisions = true;
-    camera.setTarget(player);
     // create a built-in "ground" shape; its constructor takes 5 params: name, width, height, subdivisions and scene
     var ground = BABYLON.Mesh.CreateGround('ground1', 1000, 1000, 4, scene);
     var grassMaterial = new BABYLON.StandardMaterial("grassMaterial", scene);
@@ -110,12 +110,57 @@ var createScene = function (engine, canvas) {
     grassMaterial.diffuseTexture = grassTexture;
     ground.material = grassMaterial;
     ground.checkCollisions = true;
-    player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+    ground.renderingGroupId = 1;
     ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
     // return the created scene
+    BABYLON.SceneLoader.ImportMesh("", "", "zombie_textured.babylon", scene, function (newMeshes, particleSystems, skeletons) {
+        player = newMeshes[0];
+        console.log(particleSystems);
+        player.scaling.x = 2;
+        player.scaling.y = 2;
+        player.scaling.z = 2;
+        player.position.y = 10;
+        player.ellipsoid = new BABYLON.Vector3(2, 2, 2);
+        player.applyGravity = true;
+        player.checkCollisions = true;
+        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+        // let material = new BABYLON.StandardMaterial("texture1", scene);
+        // player.material = material;
+        player.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        // material.diffuseColor = new BABYLON.Color3(1.0, 0.2, 0.7);
+        player.faceDirection = -Math.PI / 2;
+        player.renderingGroupId = 1;
+        camera.setTarget(player);
+        theSkeleton = skeletons[0];
+        BABYLON.SceneLoader.ImportMesh("", "", "sword.babylon", scene, function (newMeshes, particleSystems) {
+            var sword = newMeshes[0];
+            sword.rotate(BABYLON.Axis.Z, Math.PI, BABYLON.Space.LOCAL);
+            sword.renderingGroupId = 1;
+            sword.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+            sword.scaling.x = 0.5;
+            sword.scaling.y = 0.5;
+            sword.scaling.z = 0.5;
+            var swordArmBone = theSkeleton.bones.find(function (bone) {
+                return bone.id === "Arm2.r.001";
+            });
+            console.log("attaching stuff");
+            console.log(theSkeleton);
+            sword.attachToBone(swordArmBone, player);
+            sword.position.y -= 0.7;
+        });
+    });
     return scene;
 };
 var engine;
+var turnPlayer = function () {
+    if (player) {
+        var diff = camera.alpha - player.faceDirection;
+        player.rotate(BABYLON.Axis.Y, -diff, BABYLON.Space.LOCAL);
+        player.faceDirection += diff;
+    }
+};
+var playerAnimation;
+var punchAnimation;
 var main = function () {
     var canvas = document.getElementById('renderCanvas');
     engine = new BABYLON.Engine(canvas, true);
@@ -131,28 +176,64 @@ var main = function () {
         axisY.color = new BABYLON.Color3(0, 1, 0);
         var axisZ = BABYLON.Mesh.CreateLines("axisZ", [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size)], scene);
         axisZ.color = new BABYLON.Color3(0, 0, 1);
+        axisX.renderingGroupId = 1;
+        axisY.renderingGroupId = 1;
+        axisZ.renderingGroupId = 1;
     };
     showAxis(10);
+    var skybox = BABYLON.Mesh.CreateBox("skyBox", 100.0, scene);
+    var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.disableLighting = true;
+    skybox.material = skyboxMaterial;
+    skybox.infiniteDistance = true;
+    skyboxMaterial.disableLighting = true;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("skybox/skybox", scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skybox.renderingGroupId = 0;
+    // myMesh.renderingGroupId = 1;
     engine.runRenderLoop(function () {
         fpsLabel.innerHTML = engine.getFps().toFixed() + " fps";
+        //turn player according to camera angle
         if (keyState["w"]) {
             player.position.x -= Math.cos(camera.alpha) * moveSpeed;
             player.position.z -= Math.sin(camera.alpha) * moveSpeed;
+            if (!playerAnimation && !punchAnimation) {
+                playerAnimation = true;
+                scene.beginAnimation(theSkeleton, 332, 346, false, 1, function () {
+                    playerAnimation = false;
+                });
+            }
+            turnPlayer();
         }
         else if (keyState["s"]) {
             player.position.x += Math.cos(camera.alpha) * moveSpeed;
             player.position.z += Math.sin(camera.alpha) * moveSpeed;
+            turnPlayer();
         }
         if (keyState["d"]) {
             player.position.x -= Math.sin(camera.alpha) * moveSpeed;
             player.position.z += Math.cos(camera.alpha) * moveSpeed;
+            turnPlayer();
         }
         else if (keyState["a"]) {
             player.position.x += Math.sin(camera.alpha) * moveSpeed;
             player.position.z -= Math.cos(camera.alpha) * moveSpeed;
+            turnPlayer();
         }
         if (keyState[" "]) {
             player.position.y += 1;
+        }
+        if (mouseState[0]) {
+            if (!punchAnimation) {
+                console.log("starting to punch ppl");
+                punchAnimation = true;
+                var derp = scene.beginAnimation(theSkeleton, 290, 303, false, 1.0, function () {
+                    punchAnimation = false;
+                });
+                console.log(derp);
+            }
+            console.log("clicking");
         }
         scene.render();
     });
@@ -163,7 +244,14 @@ window.addEventListener('DOMContentLoaded', function () {
     });
     document.body.addEventListener("keyup", function (e) {
         keyState[e.key] = false;
-        console.log(e);
+    });
+    document.body.addEventListener("mousedown", function (e) {
+        mouseState[e.button] = true;
+        // e.preventDefault();
+    });
+    document.body.addEventListener("mouseup", function (e) {
+        mouseState[e.button] = false;
+        e.preventDefault();
     });
     main();
 });

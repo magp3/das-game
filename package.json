@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "dependencies": {
     "babylonjs": "^3.1.0-alpha1",
-    "cannon": "^0.6.2"
+    "cannon": "^0.6.2",
+    "lodash":"^4.17.4"
   },
   "scripts": {
     "start": "webpack --config webpack.config.js --watch"
