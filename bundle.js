@@ -77,6 +77,8 @@ var mouseState = {};
 var player;
 var camera;
 var theSkeleton;
+var sword;
+var enemy;
 var createScene = function (engine, canvas) {
     // create a basic BJS Scene object
     var scene = new BABYLON.Scene(engine);
@@ -84,8 +86,9 @@ var createScene = function (engine, canvas) {
     BABYLON.DebugLayer.InspectorURL = location.href + "babylon.inspector.bundle.js";
     scene.debugLayer.show();
     //will do collisions in worker thread for better rendering times - seems to not work..
-    // scene.workerCollisions = true;
+    //scene.workerCollisions = true;
     scene.collisionsEnabled = true;
+    scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
     // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
     camera = new BABYLON.ArcRotateCamera("arcrotateCamera", 0, 0, 0, BABYLON.Vector3.Zero(), scene);
     // target the camera to scene origin
@@ -111,8 +114,26 @@ var createScene = function (engine, canvas) {
     ground.material = grassMaterial;
     ground.checkCollisions = true;
     ground.renderingGroupId = 1;
-    ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
+    ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.PlaneImpostor, { mass: 0, restitution: 0 }, scene);
     // return the created scene
+    //
+    // BABYLON.SceneLoader.ImportMesh("", "", "zombie_textured.babylon", scene, function (newMeshes, particleSystems,skeletons) {
+    //     enemy = newMeshes[0];
+    //     enemy.position.x += 10;
+    //     enemy.scaling.x = 2;
+    //     enemy.scaling.y = 2;
+    //     enemy.scaling.z = 2;
+    //     enemy.position.y = 10;
+    //     enemy.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    //     enemy.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
+    //
+    //     enemy.applyGravity = true;
+    //     enemy.checkCollisions = true;
+    //     enemy.physicsImpostor = new BABYLON.PhysicsImpostor(enemy, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0.001,friction:0.5 }, scene);
+    //     enemy.renderingGroupId = 1;
+    //
+    //
+    // });
     BABYLON.SceneLoader.ImportMesh("", "", "zombie_textured.babylon", scene, function (newMeshes, particleSystems, skeletons) {
         player = newMeshes[0];
         console.log(particleSystems);
@@ -120,10 +141,9 @@ var createScene = function (engine, canvas) {
         player.scaling.y = 2;
         player.scaling.z = 2;
         player.position.y = 10;
-        player.ellipsoid = new BABYLON.Vector3(2, 2, 2);
         player.applyGravity = true;
         player.checkCollisions = true;
-        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0.001, friction: 0.0 }, scene);
         // let material = new BABYLON.StandardMaterial("texture1", scene);
         // player.material = material;
         player.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
@@ -133,7 +153,7 @@ var createScene = function (engine, canvas) {
         camera.setTarget(player);
         theSkeleton = skeletons[0];
         BABYLON.SceneLoader.ImportMesh("", "", "sword.babylon", scene, function (newMeshes, particleSystems) {
-            var sword = newMeshes[0];
+            sword = newMeshes[0];
             sword.rotate(BABYLON.Axis.Z, Math.PI, BABYLON.Space.LOCAL);
             sword.renderingGroupId = 1;
             sword.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
@@ -148,6 +168,88 @@ var createScene = function (engine, canvas) {
             sword.attachToBone(swordArmBone, player);
             sword.position.y -= 0.7;
         });
+        var dasPlate = BABYLON.MeshBuilder.CreatePlane("derp", { width: 2000, height: 2000 }, scene);
+        var material = new BABYLON.StandardMaterial("mat", scene);
+        material.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        dasPlate.material = material;
+        dasPlate.renderingGroupId = 1;
+        dasPlate.position.z = 2;
+        var createPlate = function (width, height, x, y) {
+            var plate = BABYLON.MeshBuilder.CreatePlane("derp", { width: width, height: height }, scene);
+            plate.position.x = x;
+            plate.position.y = y;
+            var material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,1.0,0);
+            var stone = new BABYLON.Texture("sten.png", scene);
+            material.diffuseTexture = stone;
+            // grassTexture.uScale = 8;
+            // grassTexture.vScale = 8;
+            plate.material = material;
+            // plate.rotate(BABYLON.Axis.X,Math.PI/2,BABYLON.Space.LOCAL);
+            plate.renderingGroupId = 1;
+            return plate;
+        };
+        var smallPlate = function (x, y) {
+            var plate = createPlate(5, 1, x, y + 0.5);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,0,1.0);
+            // plate.material = material;
+            return 1;
+        };
+        var mediumPlate = function (x, y) {
+            var plate = createPlate(5, 1.5, x, y + 0.75);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,1.0,0);
+            // plate.material = material;
+            return 1.5;
+        };
+        var bigPlate = function (x, y) {
+            var plate = createPlate(5, 2, x, y + 1);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(1.0,0,0);
+            // plate.material = material;
+            return 2;
+        };
+        var width = 5.08;
+        for (var j = 0; j < 3; j++) {
+            for (var i = 0; i < 30; i++) {
+                var height = 14.3 * j;
+                height += smallPlate(width * i, height);
+                height += 0.08;
+                height += mediumPlate(width * i + 1.25, height);
+                height += 0.08;
+                height += smallPlate(width * i + 2.25, height);
+                height += 0.08;
+                height += bigPlate(width * i + 4.41, height);
+                height += 0.08;
+                height += smallPlate(width * i + 7.08, height);
+                height += 0.08;
+                height += mediumPlate(width * i + 8.83, height);
+                height += 0.08;
+                height += smallPlate(width * i + 10.25, height);
+                height += 0.08;
+                height += bigPlate(width * i + 10.75, height);
+                height += 0.08;
+                height += smallPlate(width * i + 13.66, height);
+                height += 0.08;
+                height += mediumPlate(width * i + 15, height);
+                height += 0.08;
+                console.log(height);
+            }
+        }
+        /*
+        s
+        m
+        s
+        b
+        s
+        m
+        s
+        b
+        s
+        m
+        
+         */
     });
     return scene;
 };
@@ -196,8 +298,15 @@ var main = function () {
         fpsLabel.innerHTML = engine.getFps().toFixed() + " fps";
         //turn player according to camera angle
         if (keyState["w"]) {
+            // player.physicsImpostor.registerOnPhysicsCollide(enemy.physicsImpostor,()=>
+            // {
+            //     console.log("Collided with enemy");
+            // });
             player.position.x -= Math.cos(camera.alpha) * moveSpeed;
             player.position.z -= Math.sin(camera.alpha) * moveSpeed;
+            // player.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(Math.cos(camera.alpha) * moveSpeed,
+            //     0, Math.sin(camera.alpha) * moveSpeed));
+            // console.log(player.physicsImpostor.getLinearVelocity());
             if (!playerAnimation && !punchAnimation) {
                 playerAnimation = true;
                 scene.beginAnimation(theSkeleton, 332, 346, false, 1, function () {

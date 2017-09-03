@@ -10,16 +10,20 @@ let mouseState = {};
 let player;
 let camera;
 let theSkeleton;
+let sword;
+let enemy;
 
 var createScene = function(engine,canvas) {
     // create a basic BJS Scene object
     var scene = new BABYLON.Scene(engine);
     scene.enablePhysics();
+
     BABYLON.DebugLayer.InspectorURL = location.href  + "babylon.inspector.bundle.js";
     scene.debugLayer.show();
     //will do collisions in worker thread for better rendering times - seems to not work..
-    // scene.workerCollisions = true;
+    //scene.workerCollisions = true;
     scene.collisionsEnabled = true;
+    scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
     // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
     camera = new BABYLON.ArcRotateCamera("arcrotateCamera",0,0,0,BABYLON.Vector3.Zero(),scene);
 
@@ -53,8 +57,27 @@ var createScene = function(engine,canvas) {
     ground.renderingGroupId = 1;
 
 
-    ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
+    ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.PlaneImpostor, { mass: 0, restitution: 0 }, scene);
     // return the created scene
+
+    //
+    // BABYLON.SceneLoader.ImportMesh("", "", "zombie_textured.babylon", scene, function (newMeshes, particleSystems,skeletons) {
+    //     enemy = newMeshes[0];
+    //     enemy.position.x += 10;
+    //     enemy.scaling.x = 2;
+    //     enemy.scaling.y = 2;
+    //     enemy.scaling.z = 2;
+    //     enemy.position.y = 10;
+    //     enemy.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    //     enemy.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
+    //
+    //     enemy.applyGravity = true;
+    //     enemy.checkCollisions = true;
+    //     enemy.physicsImpostor = new BABYLON.PhysicsImpostor(enemy, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0.001,friction:0.5 }, scene);
+    //     enemy.renderingGroupId = 1;
+    //
+    //
+    // });
 
     BABYLON.SceneLoader.ImportMesh("", "", "zombie_textured.babylon", scene, function (newMeshes, particleSystems,skeletons) {
         player = newMeshes[0];
@@ -64,10 +87,10 @@ var createScene = function(engine,canvas) {
         player.scaling.y = 2;
         player.scaling.z = 2;
         player.position.y = 10;
-        player.ellipsoid = new BABYLON.Vector3(2, 2, 2);
+
         player.applyGravity = true;
         player.checkCollisions = true;
-        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0.001,friction:0.0 }, scene);
 
         // let material = new BABYLON.StandardMaterial("texture1", scene);
         // player.material = material;
@@ -78,7 +101,7 @@ var createScene = function(engine,canvas) {
         camera.setTarget(player);
         theSkeleton = skeletons[0];
         BABYLON.SceneLoader.ImportMesh("", "", "sword.babylon", scene, function (newMeshes, particleSystems) {
-            let sword = newMeshes[0];
+            sword = newMeshes[0];
             sword.rotate(BABYLON.Axis.Z,Math.PI,BABYLON.Space.LOCAL);
             sword.renderingGroupId = 1;
             sword.material.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
@@ -98,6 +121,107 @@ var createScene = function(engine,canvas) {
 
 
         });
+
+        let dasPlate = BABYLON.MeshBuilder.CreatePlane("derp",{width:2000,height:2000},scene);
+        let material = new BABYLON.StandardMaterial("mat", scene);
+        material.diffuseColor = new BABYLON.Color3(0,0,0);
+        dasPlate.material = material;
+        dasPlate.renderingGroupId = 1;
+        dasPlate.position.z = 2;
+        let createPlate = (width,height,x,y) =>
+        {
+            let plate = BABYLON.MeshBuilder.CreatePlane("derp",{width:width,height:height},scene);
+            plate.position.x = x;
+            plate.position.y = y;
+            let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,1.0,0);
+            let stone = new BABYLON.Texture("sten.png", scene);
+            material.diffuseTexture = stone;
+            // grassTexture.uScale = 8;
+            // grassTexture.vScale = 8;
+
+            plate.material = material;
+            // plate.rotate(BABYLON.Axis.X,Math.PI/2,BABYLON.Space.LOCAL);
+            plate.renderingGroupId = 1;
+            return plate;
+        };
+
+        let smallPlate = (x,y)=>
+        {
+            let plate = createPlate(5,1,x,y + 0.5);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,0,1.0);
+            // plate.material = material;
+            return 1;
+
+        };
+
+        let mediumPlate = (x,y) =>
+        {
+            let plate = createPlate(5,1.5,x,y + 0.75);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(0,1.0,0);
+            // plate.material = material;
+            return 1.5;
+        };
+
+        let bigPlate = (x,y) =>
+        {
+            let plate = createPlate(5,2,x, y + 1);
+            // let material = new BABYLON.StandardMaterial("mat", scene);
+            // material.diffuseColor = new BABYLON.Color3(1.0,0,0);
+            // plate.material = material;
+            return 2;
+
+        };
+
+
+
+        let width = 5.08;
+        for(let j = 0;j<3;j++)
+        {
+            for(let i = 0;i<30;i++)
+            {
+                let height = 14.3 * j;
+                height += smallPlate(width*i,height);
+                height += 0.08;
+                height += mediumPlate(width*i + 1.25,height );
+                height += 0.08;
+                height += smallPlate(width*i + 2.25,height );
+                height += 0.08;
+                height += bigPlate(width*i + 4.41 ,height );
+                height += 0.08;
+                height += smallPlate(width*i +7.08,height  );
+                height += 0.08;
+                height += mediumPlate(width*i + 8.83,height );
+                height += 0.08;
+                height += smallPlate(width*i + 10.25,height );
+                height += 0.08;
+                height += bigPlate(width*i + 10.75,height );
+                height += 0.08;
+                height += smallPlate(width*i + 13.66,height );
+                height += 0.08;
+                height += mediumPlate(width*i + 15,height  );
+                height += 0.08;
+
+                console.log(height);
+            }
+
+        }
+
+/*
+s
+m
+s
+b
+s
+m
+s
+b
+s
+m
+
+ */
     });
 
 
@@ -160,11 +284,17 @@ let main = () =>
 
         //turn player according to camera angle
 
-
         if(keyState["w"])
         {
+            // player.physicsImpostor.registerOnPhysicsCollide(enemy.physicsImpostor,()=>
+            // {
+            //     console.log("Collided with enemy");
+            // });
             player.position.x -= Math.cos(camera.alpha) * moveSpeed;
             player.position.z -= Math.sin(camera.alpha) * moveSpeed;
+            // player.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(Math.cos(camera.alpha) * moveSpeed,
+            //     0, Math.sin(camera.alpha) * moveSpeed));
+            // console.log(player.physicsImpostor.getLinearVelocity());
             if(!playerAnimation && !punchAnimation)
             {
                 playerAnimation = true;
